@@ -1,0 +1,11 @@
+[package]
+name = "jog"
+version = "0.1.0"
+edition = "2021"
+description = "A task runner with no syntax."
+license = "MIT"
+repository = "https://github.com/callum-oakley/jog"
+
+[dependencies]
+anyhow = "1.0.95"
+termcolor = "1.4.1"

@@ -1,4 +1,4 @@
-use std::{os::unix::process::ExitStatusExt, process::Command};
+use std::process::Command;
 
 use anyhow::{Context, Result};
 
@@ -12,8 +12,5 @@ pub fn run(task: &Task, args: &[String]) -> Result<i32> {
     cmd.args(["-c", &task.body, &task.name]);
     cmd.args(&args[task.params.len()..]);
     let status = cmd.spawn()?.wait()?;
-    status
-        .code()
-        .or(status.signal())
-        .context("unable to determine exit code")
+    status.code().context("terminated by a signal")
 }

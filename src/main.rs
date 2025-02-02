@@ -8,11 +8,8 @@ use anyhow::{bail, Context, Result};
 fn try_main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
-    let path = jogfile::find()?;
-    let tasks = jogfile::read(&path);
-
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
-        println!("TODO help");
+        print::help()?;
         return Ok(());
     }
 
@@ -22,7 +19,7 @@ fn try_main() -> Result<()> {
     }
 
     if args[0] == "--list" || args[0] == "-l" {
-        print::tasks(&tasks?)?;
+        print::tasks(&jogfile::read(&jogfile::find()?)?)?;
         return Ok(());
     }
 
@@ -30,10 +27,11 @@ fn try_main() -> Result<()> {
         bail!("unknown option '{}'", args[0]);
     }
 
+    let path = jogfile::find()?;
     let name = &args[0];
     let args = &args[1..];
 
-    let tasks: Vec<_> = tasks?
+    let tasks: Vec<_> = jogfile::read(&path)?
         .into_iter()
         .filter(|task| &task.name == name)
         .collect();

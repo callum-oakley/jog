@@ -21,6 +21,64 @@ fn color_choice(t: &impl IsTerminal) -> ColorChoice {
     }
 }
 
+pub fn help() -> Result<()> {
+    let mut stderr = StandardStream::stderr(color_choice(&io::stderr()));
+    write!(&mut stderr, "Run a task defined in a jogfile\n\n")?;
+
+    write_with_color!(
+        &mut stderr,
+        ColorSpec::new().set_bold(true).set_underline(true),
+        "Usage:"
+    )?;
+    write!(&mut stderr, " ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "jog")?;
+    write!(&mut stderr, " [OPTIONS] [TASK] [ARGS]\n\n")?;
+
+    write_with_color!(
+        &mut stderr,
+        ColorSpec::new().set_bold(true).set_underline(true),
+        "Arguments:"
+    )?;
+    writeln!(&mut stderr)?;
+    writeln!(&mut stderr, "  [TASK]  The name of the task to run")?;
+    writeln!(&mut stderr, "  [ARGS]  Arguments to pass to the task")?;
+    writeln!(&mut stderr)?;
+
+    write_with_color!(
+        &mut stderr,
+        ColorSpec::new().set_bold(true).set_underline(true),
+        "Options:"
+    )?;
+    writeln!(&mut stderr)?;
+    write!(&mut stderr, "  ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-l")?;
+    write!(&mut stderr, ", ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--list")?;
+    writeln!(&mut stderr, "     List tasks and their parameters")?;
+    write!(&mut stderr, "  ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-h")?;
+    write!(&mut stderr, ", ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--help")?;
+    writeln!(&mut stderr, "     Print help")?;
+    write!(&mut stderr, "  ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-V")?;
+    write!(&mut stderr, ", ")?;
+    write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--version")?;
+    writeln!(&mut stderr, "  Print version")?;
+    writeln!(&mut stderr)?;
+
+    writeln!(
+        &mut stderr,
+        "Tasks are run in $SHELL. Arguments are passed as environment variables."
+    )?;
+    writeln!(
+        &mut stderr,
+        "For tasks defined with a final parameter of '*', extra arguments are passed as positional arguments."
+    )?;
+
+    Ok(())
+}
+
 pub fn tasks(tasks: &[Task]) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
     for task in tasks {

@@ -8,10 +8,8 @@ use anyhow::{bail, Context, Result};
 fn try_main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
 
-    // TODO look for jogfile in parent directories
-    // TODO nice error if jogfile doesn't exist
-    let path = "jogfile";
-    let tasks = jogfile::read(path);
+    let path = jogfile::find()?;
+    let tasks = jogfile::read(&path);
 
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
         println!("TODO help");
@@ -41,17 +39,20 @@ fn try_main() -> Result<()> {
         .collect();
 
     if tasks.is_empty() {
-        bail!("{path}: unknown task '{name}'");
+        bail!("{path:?}: unknown task '{name}'");
     }
 
     let Some(task) = tasks.iter().find(|&task| {
         task.params.len() == args.len() || task.star && task.params.len() < args.len()
     }) else {
-        bail!("{path}: {}", print::mismatched_args_msg(&tasks, name, args));
+        bail!(
+            "{path:?}: {}",
+            print::mismatched_args_msg(&tasks, name, args)
+        );
     };
 
     std::process::exit(
-        task.run(path, args)?
+        task.run(&path, args)?
             .code()
             .context("terminated by a signal")?,
     )

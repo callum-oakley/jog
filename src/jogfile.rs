@@ -1,10 +1,11 @@
 use std::{
     fs,
     iter::Peekable,
+    path::{Path, PathBuf},
     process::{Command, ExitStatus},
 };
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 pub struct Task {
     pub name: String,
@@ -14,18 +15,26 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn run(&self, path: &str, args: &[String]) -> Result<ExitStatus> {
+    pub fn run(&self, path: &Path, args: &[String]) -> Result<ExitStatus> {
         let mut cmd = Command::new(std::env::var("SHELL")?);
         for (param, arg) in self.params.iter().zip(args) {
             cmd.env(param, arg);
         }
-        cmd.args(["-c", &self.body, path]);
+        cmd.args(["-c", &self.body, path.to_str().context("non-UTF-8 path")?]);
         cmd.args(&args[self.params.len()..]);
         Ok(cmd.spawn()?.wait()?)
     }
 }
 
-pub fn read(path: &str) -> Result<Vec<Task>> {
+pub fn find() -> Result<PathBuf> {
+    let mut dir = std::env::current_dir()?;
+    while !dir.join("jogfile").try_exists()? {
+        dir = dir.parent().context("jogfile not found")?.to_path_buf();
+    }
+    Ok(dir.join("jogfile"))
+}
+
+pub fn read(path: &Path) -> Result<Vec<Task>> {
     let mut tasks = Vec::new();
     let s = fs::read_to_string(path)?;
     let mut lines = s
@@ -40,7 +49,7 @@ pub fn read(path: &str) -> Result<Vec<Task>> {
 }
 
 fn parse_task<'a>(
-    path: &str,
+    path: &Path,
     lines: &mut Peekable<impl Iterator<Item = (usize, &'a str)>>,
 ) -> Result<Option<Task>> {
     while lines
@@ -52,7 +61,7 @@ fn parse_task<'a>(
 
     if let Some((line_no, header)) = lines.next() {
         if header.starts_with(char::is_whitespace) {
-            bail!("{path}:{line_no}: malformed task: indented header");
+            bail!("{path:?}:{line_no}: malformed task: indented header");
         }
 
         let mut header = header.split_whitespace().map(String::from);

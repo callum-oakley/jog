@@ -1,4 +1,8 @@
-use std::{fs, iter::Peekable};
+use std::{
+    fs,
+    iter::Peekable,
+    process::{Command, ExitStatus},
+};
 
 use anyhow::{bail, Result};
 
@@ -10,12 +14,14 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn param_count(&self) -> String {
-        let mut res = self.params.len().to_string();
-        if self.star {
-            res.push('+');
+    pub fn run(&self, path: &str, args: &[String]) -> Result<ExitStatus> {
+        let mut cmd = Command::new(std::env::var("SHELL")?);
+        for (param, arg) in self.params.iter().zip(args) {
+            cmd.env(param, arg);
         }
-        res
+        cmd.args(["-c", &self.body, path]);
+        cmd.args(&args[self.params.len()..]);
+        Ok(cmd.spawn()?.wait()?)
     }
 }
 

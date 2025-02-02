@@ -51,3 +51,40 @@ pub fn error(err: &Error) -> Result<()> {
     writeln!(&mut stderr, ": {err:#}")?;
     Ok(())
 }
+
+pub fn mismatched_args_msg(tasks: &[Task], name: &str, args: &[String]) -> String {
+    fn param_count(task: &Task) -> String {
+        let mut res = task.params.len().to_string();
+        if task.star {
+            res.push('+');
+        }
+        res
+    }
+
+    let mut params_msg = param_count(&tasks[0]);
+    if tasks.len() == 2 {
+        params_msg.push_str(" or ");
+        params_msg.push_str(&param_count(&tasks[1]));
+    } else {
+        for i in 1..tasks.len() {
+            params_msg.push_str(", ");
+            if i == tasks.len() - 1 {
+                params_msg.push_str("or ");
+            }
+            params_msg.push_str(&param_count(&tasks[i]));
+        }
+    }
+    params_msg.push_str(" parameter");
+    if tasks.len() > 1 || tasks[0].params.len() != 1 {
+        params_msg.push('s');
+    }
+
+    let mut args_msg = args.len().to_string();
+    if args.len() == 1 {
+        args_msg.push_str(" was given");
+    } else {
+        args_msg.push_str(" were given");
+    }
+
+    format!("task '{name}' takes {params_msg}, but {args_msg}")
+}

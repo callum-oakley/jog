@@ -2,9 +2,8 @@
 
 mod jogfile;
 mod print;
-mod shell;
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 
 fn try_main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -42,41 +41,20 @@ fn try_main() -> Result<()> {
         .collect();
 
     if tasks.is_empty() {
-        bail!("{path}: no task named '{name}'");
+        bail!("{path}: unknown task '{name}'");
     }
 
     let Some(task) = tasks.iter().find(|&task| {
         task.params.len() == args.len() || task.star && task.params.len() < args.len()
     }) else {
-        let mut params_msg = tasks[0].param_count();
-        if tasks.len() == 2 {
-            params_msg.push_str(" or ");
-            params_msg.push_str(&tasks[1].param_count());
-        } else {
-            for i in 1..tasks.len() {
-                params_msg.push_str(", ");
-                if i == tasks.len() - 1 {
-                    params_msg.push_str("or ");
-                }
-                params_msg.push_str(&tasks[i].param_count());
-            }
-        }
-        params_msg.push_str(" parameter");
-        if tasks.len() > 1 || tasks[0].params.len() != 1 {
-            params_msg.push('s');
-        }
-
-        let mut args_msg = args.len().to_string();
-        if args.len() == 1 {
-            args_msg.push_str(" was given");
-        } else {
-            args_msg.push_str(" were given");
-        }
-
-        bail!("{path}: task '{name}' takes {params_msg}, but {args_msg}");
+        bail!("{path}: {}", print::mismatched_args_msg(&tasks, name, args));
     };
 
-    std::process::exit(shell::run(task, args)?)
+    std::process::exit(
+        task.run(path, args)?
+            .code()
+            .context("terminated by a signal")?,
+    )
 }
 
 fn main() {

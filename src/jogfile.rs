@@ -68,6 +68,7 @@ pub fn read(path: &Path) -> Result<Vec<Task>> {
     while let Some(task) = parse_task(path, &mut lines)? {
         tasks.push(task);
     }
+    validate(path, &tasks)?;
     Ok(tasks)
 }
 
@@ -123,6 +124,33 @@ fn parse_task<'a>(
     } else {
         Ok(None)
     }
+}
+
+fn validate(path: &Path, tasks: &[Task]) -> Result<()> {
+    for j in 1..tasks.len() {
+        for i in 0..j {
+            let a = &tasks[i];
+            let b = &tasks[j];
+            if a.name == b.name {
+                // Check if 'a' would always run instead of 'b'
+                let redundant = match (a.star, b.star) {
+                    (true, _) => a.params.len() <= b.params.len(),
+                    (false, true) => false,
+                    (false, false) => a.params.len() == b.params.len(),
+                };
+                ensure!(
+                    !redundant,
+                    "{}:{}: redundant definition for '{}', already covered by {}:{}",
+                    path.to_string_lossy(),
+                    b.line_no,
+                    a.name,
+                    path.to_string_lossy(),
+                    a.line_no,
+                );
+            }
+        }
+    }
+    Ok(())
 }
 
 fn parse_env_or_default<K, T>(key: K, default: T) -> Result<T>

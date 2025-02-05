@@ -37,14 +37,15 @@ fn try_main() -> Result<()> {
         .collect();
 
     if tasks.is_empty() {
-        bail!("{path:?}: unknown task '{name}'");
+        bail!("{}: unknown task '{}'", path.to_string_lossy(), name);
     }
 
     let Some(task) = tasks.iter().find(|&task| {
         task.params.len() == args.len() || task.star && task.params.len() < args.len()
     }) else {
         bail!(
-            "{path:?}: {}",
+            "{}: {}",
+            path.to_string_lossy(),
             print::mismatched_args_msg(&tasks, name, args)
         );
     };

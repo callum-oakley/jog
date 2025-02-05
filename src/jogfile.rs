@@ -5,7 +5,7 @@ use std::{
     process::{Command, ExitStatus},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 
 pub struct Task {
     pub name: String,
@@ -27,11 +27,16 @@ impl Task {
 }
 
 pub fn find() -> Result<PathBuf> {
-    let mut dir = std::env::current_dir()?;
-    while !dir.join("jogfile").try_exists()? {
-        dir = dir.parent().context("jogfile not found")?.to_path_buf();
+    if Path::new("jogfile").try_exists()? {
+        Ok(PathBuf::from("jogfile"))
+    } else {
+        let mut dir = PathBuf::from("..");
+        while !dir.join("jogfile").try_exists()? {
+            ensure!(dir.canonicalize()?.parent().is_some(), "jogfile not found");
+            dir = Path::new("..").join(dir);
+        }
+        Ok(dir.join("jogfile"))
     }
-    Ok(dir.join("jogfile"))
 }
 
 pub fn read(path: &Path) -> Result<Vec<Task>> {
@@ -61,7 +66,11 @@ fn parse_task<'a>(
 
     if let Some((line_no, header)) = lines.next() {
         if header.starts_with(char::is_whitespace) {
-            bail!("{path:?}:{line_no}: malformed task: indented header");
+            bail!(
+                "{}:{}: malformed task: indented header",
+                path.to_string_lossy(),
+                line_no
+            );
         }
 
         let mut header = header.split_whitespace().map(String::from);

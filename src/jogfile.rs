@@ -1,25 +1,43 @@
 use std::{
-    fs,
+    ffi::OsStr,
     iter::Peekable,
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
+    str::FromStr,
 };
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 
 pub struct Task {
     pub name: String,
     pub params: Vec<String>,
     pub star: bool,
     pub body: String,
+    pub line_no: usize,
 }
 
 impl Task {
     pub fn run(&self, path: &Path, args: &[String]) -> Result<ExitStatus> {
+        let depth = parse_env_or_default("JOG_DEPTH", 0)?;
+        if depth > parse_env_or_default("JOG_MAX_DEPTH", 100)? {
+            bail!(
+                "{}:{}: maximum recursion depth exceeded running '{}' with {} {}",
+                path.to_string_lossy(),
+                self.line_no,
+                self.name,
+                args.len(),
+                if args.len() == 1 {
+                    "argument"
+                } else {
+                    "arguments"
+                }
+            );
+        }
         let mut cmd = Command::new(std::env::var("SHELL")?);
         for (param, arg) in self.params.iter().zip(args) {
             cmd.env(param, arg);
         }
+        cmd.env("JOG_DEPTH", (depth + 1).to_string());
         cmd.args(["-c", &self.body, path.to_str().context("non-UTF-8 path")?]);
         cmd.args(&args[self.params.len()..]);
         Ok(cmd.spawn()?.wait()?)
@@ -41,7 +59,7 @@ pub fn find() -> Result<PathBuf> {
 
 pub fn read(path: &Path) -> Result<Vec<Task>> {
     let mut tasks = Vec::new();
-    let s = fs::read_to_string(path)?;
+    let s = std::fs::read_to_string(path)?;
     let mut lines = s
         .lines()
         .enumerate()
@@ -100,8 +118,22 @@ fn parse_task<'a>(
             params,
             star,
             body,
+            line_no,
         }))
     } else {
         Ok(None)
+    }
+}
+
+fn parse_env_or_default<K, T>(key: K, default: T) -> Result<T>
+where
+    K: AsRef<OsStr>,
+    T: FromStr,
+    T::Err: std::fmt::Display,
+{
+    match std::env::var(key) {
+        Ok(value) => value.parse().map_err(|err: T::Err| anyhow!("{err}")),
+        Err(std::env::VarError::NotPresent) => Ok(default),
+        Err(err) => Err(anyhow!(err)),
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "jog"
 version = "0.1.7"
-edition = "2021"
+edition = "2024"
 description = "A task runner with no syntax."
 license = "MIT"
 repository = "https://github.com/callum-oakley/jog"

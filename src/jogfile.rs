@@ -6,12 +6,12 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 
 pub struct Task {
     pub name: String,
     pub params: Vec<String>,
-    pub star: bool,
+    pub rest: bool,
     pub body: String,
     pub line_no: usize,
 }
@@ -98,10 +98,10 @@ fn parse_task<'a>(
 
         let mut params: Vec<_> = header.collect();
 
-        let mut star = false;
-        if params.last().is_some_and(|p| p == "*") {
+        let mut rest = false;
+        if params.last().is_some_and(|p| p == "...") {
             params.pop();
-            star = true;
+            rest = true;
         }
 
         let mut body = String::new();
@@ -117,7 +117,7 @@ fn parse_task<'a>(
         Ok(Some(Task {
             name,
             params,
-            star,
+            rest,
             body,
             line_no,
         }))
@@ -133,7 +133,7 @@ fn validate(path: &Path, tasks: &[Task]) -> Result<()> {
             let b = &tasks[j];
             if a.name == b.name {
                 // Check if 'a' would always run instead of 'b'
-                let redundant = match (a.star, b.star) {
+                let redundant = match (a.rest, b.rest) {
                     (true, _) => a.params.len() <= b.params.len(),
                     (false, true) => false,
                     (false, false) => a.params.len() == b.params.len(),

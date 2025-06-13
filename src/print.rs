@@ -69,11 +69,11 @@ pub fn help() -> Result<()> {
 
     writeln!(
         &mut stderr,
-        "Tasks are run in $SHELL. Arguments are passed as environment variables."
+        "Tasks are run in $SHELL. Arguments are passed as environment variables. For tasks defined with a"
     )?;
     writeln!(
         &mut stderr,
-        "For tasks defined with a final parameter of '*', extra arguments are passed as positional arguments."
+        "final parameter of '...', extra arguments are passed as positional arguments."
     )?;
 
     Ok(())
@@ -91,8 +91,8 @@ pub fn tasks(tasks: &[Task]) -> Result<()> {
         for param in &task.params {
             write!(&mut stdout, " {param}")?;
         }
-        if task.star {
-            write!(&mut stdout, " *")?;
+        if task.rest {
+            write!(&mut stdout, " ...")?;
         }
         writeln!(&mut stdout)?;
     }
@@ -113,7 +113,7 @@ pub fn error(err: &Error) -> Result<()> {
 pub fn mismatched_args_msg(tasks: &[Task], name: &str, args: &[String]) -> String {
     fn param_count(task: &Task) -> String {
         let mut res = task.params.len().to_string();
-        if task.star {
+        if task.rest {
             res.push('+');
         }
         res

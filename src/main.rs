@@ -3,7 +3,7 @@
 mod jogfile;
 mod print;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 fn try_main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -41,7 +41,7 @@ fn try_main() -> Result<()> {
     }
 
     let Some(task) = tasks.iter().find(|&task| {
-        task.params.len() == args.len() || task.star && task.params.len() < args.len()
+        task.params.len() == args.len() || task.rest && task.params.len() < args.len()
     }) else {
         bail!(
             "{}: {}",

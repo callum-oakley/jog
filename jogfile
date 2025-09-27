@@ -1,0 +1,10 @@
+greet name
+  echo "Hello ${name}"
+
+greet
+  jog greet World
+
+greet ...
+  for name in "$@"; do
+    jog greet "${name}"
+  done

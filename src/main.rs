@@ -22,7 +22,10 @@ fn try_main() -> Result<()> {
     }
 
     if args[0] == "--list" || args[0] == "-l" {
-        print::list(Jogfile::read_iter(&current_dir)?)?;
+        print::list(
+            Jogfile::read_iter(&current_dir)?,
+            args.get(1).map(String::as_str),
+        )?;
         return Ok(());
     }
 

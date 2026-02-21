@@ -57,17 +57,17 @@ pub fn help() -> Result<()> {
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-l")?;
     write!(&mut stderr, ", ")?;
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--list")?;
-    writeln!(&mut stderr, "     List tasks and their parameters")?;
+    writeln!(&mut stderr, " [TASK]  List tasks and their parameters")?;
     write!(&mut stderr, "  ")?;
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-h")?;
     write!(&mut stderr, ", ")?;
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--help")?;
-    writeln!(&mut stderr, "     Print help")?;
+    writeln!(&mut stderr, "         Print help")?;
     write!(&mut stderr, "  ")?;
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "-V")?;
     write!(&mut stderr, ", ")?;
     write_with_color!(&mut stderr, ColorSpec::new().set_bold(true), "--version")?;
-    writeln!(&mut stderr, "  Print version")?;
+    writeln!(&mut stderr, "      Print version")?;
     writeln!(&mut stderr)?;
 
     writeln!(
@@ -82,28 +82,32 @@ pub fn help() -> Result<()> {
     Ok(())
 }
 
-pub fn list(jogfiles: impl Iterator<Item = Result<Jogfile>>) -> Result<()> {
+pub fn list(jogfiles: impl Iterator<Item = Result<Jogfile>>, name: Option<&str>) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
     for jogfile in jogfiles {
         let jogfile = jogfile?;
-        if jogfile.path != Path::new("jogfile") {
-            writeln!(&mut stdout)?;
+        if name.is_none() {
+            if jogfile.path != Path::new("jogfile") {
+                writeln!(&mut stdout)?;
+            }
+            write_with_color!(
+                &mut stdout,
+                ColorSpec::new().set_bold(true),
+                "# {}\n",
+                jogfile.path.display(),
+            )?;
         }
-        write_with_color!(
-            &mut stdout,
-            ColorSpec::new().set_bold(true),
-            "# {}\n",
-            jogfile.path.display(),
-        )?;
         for task in jogfile.tasks {
-            write!(&mut stdout, "{}", task.name)?;
-            for param in &task.params {
-                write!(&mut stdout, " {param}")?;
+            if name.is_none_or(|name| name == task.name) {
+                write!(&mut stdout, "{}", task.name)?;
+                for param in &task.params {
+                    write!(&mut stdout, " {param}")?;
+                }
+                if task.rest {
+                    write!(&mut stdout, " ...")?;
+                }
+                writeln!(&mut stdout)?;
             }
-            if task.rest {
-                write!(&mut stdout, " ...")?;
-            }
-            writeln!(&mut stdout)?;
         }
     }
     Ok(())

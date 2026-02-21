@@ -1,7 +1,4 @@
-use std::{
-    io::{self, IsTerminal, Write},
-    path::Path,
-};
+use std::io::{self, IsTerminal, Write};
 
 use anyhow::{Error, Result};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -84,10 +81,10 @@ pub fn help() -> Result<()> {
 
 pub fn list(jogfiles: impl Iterator<Item = Result<Jogfile>>, name: Option<&str>) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    for jogfile in jogfiles {
+    for (i, jogfile) in jogfiles.enumerate() {
         let jogfile = jogfile?;
         if name.is_none() {
-            if jogfile.path != Path::new("jogfile") {
+            if i > 0 {
                 writeln!(&mut stdout)?;
             }
             write_with_color!(

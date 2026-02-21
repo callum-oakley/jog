@@ -2,10 +2,10 @@
 name = "jog"
 version = "0.1.8"
 edition = "2024"
-description = "A task runner with no syntax."
+description = "A task runner with no string substitution."
 license = "MIT"
 repository = "https://github.com/callum-oakley/jog"
 
 [dependencies]
-anyhow = "1.0.95"
+anyhow = "1.0.102"
 termcolor = "1.4.1"

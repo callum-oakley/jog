@@ -18,8 +18,8 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 
-Tasks are run in $SHELL. Arguments are passed as environment variables. For tasks defined with a
-final parameter of '...', extra arguments are passed as positional arguments.
+Tasks are run in $SHELL. Arguments are passed as shell variables. For tasks defined with a final
+parameter of '...', extra arguments are passed as positional arguments.
 ```
 
 ## Example
@@ -53,8 +53,8 @@ So now:
 Hello World
 ```
 
-Finally we can use `...` to define a task which works for any number of names. Extra arguments are
-passed as positional arguments.
+Finally we can use `...` to define a task which works for any number of arguments. Extra arguments
+are passed as positional arguments.
 
 ```sh
 greet ...
@@ -72,8 +72,22 @@ Hello Bob
 ## No string substitution?
 
 Other task runners ([make][], [just][]) pass arguments to tasks by substituting them in to the body
-of the task itself. jog instead passes arguments as environment variables, so tasks are standard
-shell scripts with no additional templating syntax.
+of the task itself. jog instead passes arguments as shell variables, so tasks are standard shell
+scripts with no additional templating syntax.
+
+Concretely, a task like
+
+```sh
+greet name
+  echo "Hello ${name}"
+```
+
+expands to
+
+```sh
+name="$1"; shift
+  echo "Hello ${name}"
+```
 
 ## Install
 

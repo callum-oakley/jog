@@ -69,11 +69,11 @@ pub fn help() -> Result<()> {
 
     writeln!(
         &mut stderr,
-        "Tasks are run in $SHELL. Arguments are passed as environment variables. For tasks defined with a"
+        "Tasks are run in $SHELL. Arguments are passed as shell variables. For tasks defined with a final"
     )?;
     writeln!(
         &mut stderr,
-        "final parameter of '...', extra arguments are passed as positional arguments."
+        "parameter of '...', extra arguments are passed as positional arguments."
     )?;
 
     Ok(())

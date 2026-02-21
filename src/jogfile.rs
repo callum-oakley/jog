@@ -1,5 +1,6 @@
 use std::{
     ffi::OsStr,
+    fmt::Write,
     iter::Peekable,
     path::{Path, PathBuf},
     process::{Command, ExitStatus},
@@ -34,12 +35,9 @@ impl Task {
             );
         }
         let mut cmd = Command::new(std::env::var("SHELL")?);
-        for (param, arg) in self.params.iter().zip(args) {
-            cmd.env(param, arg);
-        }
         cmd.env("JOG_DEPTH", (depth + 1).to_string());
         cmd.args(["-c", &self.body, path.to_str().context("non-UTF-8 path")?]);
-        cmd.args(&args[self.params.len()..]);
+        cmd.args(args);
         Ok(cmd.spawn()?.wait()?)
     }
 }
@@ -105,13 +103,15 @@ fn parse_task<'a>(
         }
 
         let mut body = String::new();
+        for param in &params {
+            writeln!(&mut body, "{param}=\"$1\"; shift")?;
+        }
         while lines
             .peek()
             .is_some_and(|(_, line)| line.is_empty() || line.starts_with(char::is_whitespace))
         {
             let (_, line) = lines.next().expect("lines is nonempty");
-            body.push_str(line);
-            body.push('\n');
+            writeln!(&mut body, "{line}")?;
         }
 
         Ok(Some(Task {

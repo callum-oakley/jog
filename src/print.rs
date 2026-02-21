@@ -1,9 +1,12 @@
-use std::io::{self, IsTerminal, Write};
+use std::{
+    io::{self, IsTerminal, Write},
+    path::Path,
+};
 
 use anyhow::{Error, Result};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::jogfile::Task;
+use crate::jogfile::{Jogfile, Task};
 
 macro_rules! write_with_color {
     ($dst:expr, $color:expr, $($arg:tt)*) => {
@@ -79,22 +82,29 @@ pub fn help() -> Result<()> {
     Ok(())
 }
 
-pub fn tasks(tasks: &[Task]) -> Result<()> {
+pub fn list(jogfiles: impl Iterator<Item = Result<Jogfile>>) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    for task in tasks {
+    for jogfile in jogfiles {
+        let jogfile = jogfile?;
+        if jogfile.path != Path::new("jogfile") {
+            writeln!(&mut stdout)?;
+        }
         write_with_color!(
             &mut stdout,
             ColorSpec::new().set_bold(true),
-            "{}",
-            task.name
+            "# {}\n",
+            jogfile.path.display(),
         )?;
-        for param in &task.params {
-            write!(&mut stdout, " {param}")?;
+        for task in jogfile.tasks {
+            write!(&mut stdout, "{}", task.name)?;
+            for param in &task.params {
+                write!(&mut stdout, " {param}")?;
+            }
+            if task.rest {
+                write!(&mut stdout, " ...")?;
+            }
+            writeln!(&mut stdout)?;
         }
-        if task.rest {
-            write!(&mut stdout, " ...")?;
-        }
-        writeln!(&mut stdout)?;
     }
     Ok(())
 }

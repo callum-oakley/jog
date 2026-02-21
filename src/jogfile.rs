@@ -9,6 +9,46 @@ use std::{
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 
+pub struct Jogfile {
+    pub path: PathBuf,
+    pub tasks: Vec<Task>,
+}
+
+impl Jogfile {
+    pub fn read_iter(current_dir: &Path) -> Result<impl Iterator<Item = Result<Self>>> {
+        let mut jogfiles = current_dir
+            .ancestors()
+            .filter_map(|dir| {
+                let path = dir.join("jogfile");
+                match path.try_exists() {
+                    Err(err) => Some(Err(err.into())),
+                    Ok(false) => None,
+                    Ok(true) => Some(Jogfile::read(path)),
+                }
+            })
+            .peekable();
+        if jogfiles.peek().is_none() {
+            bail!("jogfile not found");
+        }
+        Ok(jogfiles)
+    }
+
+    fn read(path: PathBuf) -> Result<Self> {
+        let mut tasks = Vec::new();
+        let s = std::fs::read_to_string(&path)?;
+        let mut lines = s
+            .lines()
+            .enumerate()
+            .map(|(i, line)| (i + 1, line))
+            .peekable();
+        while let Some(task) = parse_task(&path, &mut lines)? {
+            tasks.push(task);
+        }
+        validate(&path, &tasks)?;
+        Ok(Self { path, tasks })
+    }
+}
+
 pub struct Task {
     pub name: String,
     pub params: Vec<String>,
@@ -40,34 +80,6 @@ impl Task {
         cmd.args(args);
         Ok(cmd.spawn()?.wait()?)
     }
-}
-
-pub fn find() -> Result<PathBuf> {
-    if Path::new("jogfile").try_exists()? {
-        Ok(PathBuf::from("jogfile"))
-    } else {
-        let mut dir = PathBuf::from("..");
-        while !dir.join("jogfile").try_exists()? {
-            ensure!(dir.canonicalize()?.parent().is_some(), "jogfile not found");
-            dir = Path::new("..").join(dir);
-        }
-        Ok(dir.join("jogfile"))
-    }
-}
-
-pub fn read(path: &Path) -> Result<Vec<Task>> {
-    let mut tasks = Vec::new();
-    let s = std::fs::read_to_string(path)?;
-    let mut lines = s
-        .lines()
-        .enumerate()
-        .map(|(i, line)| (i + 1, line))
-        .peekable();
-    while let Some(task) = parse_task(path, &mut lines)? {
-        tasks.push(task);
-    }
-    validate(path, &tasks)?;
-    Ok(tasks)
 }
 
 fn parse_task<'a>(

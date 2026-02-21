@@ -5,7 +5,10 @@ mod print;
 
 use anyhow::{Context, Result, bail};
 
+use crate::jogfile::Jogfile;
+
 fn try_main() -> Result<()> {
+    let current_dir = std::env::current_dir()?;
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
@@ -19,7 +22,7 @@ fn try_main() -> Result<()> {
     }
 
     if args[0] == "--list" || args[0] == "-l" {
-        print::tasks(&jogfile::read(&jogfile::find()?)?)?;
+        print::list(Jogfile::read_iter(&current_dir)?)?;
         return Ok(());
     }
 
@@ -27,34 +30,33 @@ fn try_main() -> Result<()> {
         bail!("unknown option '{}'", args[0]);
     }
 
-    let path = jogfile::find()?;
     let name = &args[0];
     let args = &args[1..];
 
-    let tasks: Vec<_> = jogfile::read(&path)?
-        .into_iter()
-        .filter(|task| &task.name == name)
-        .collect();
+    let mut mismatched_args = Vec::new();
 
-    if tasks.is_empty() {
-        bail!("{}: unknown task '{}'", path.to_string_lossy(), name);
+    for jogfile in Jogfile::read_iter(&current_dir)? {
+        let jogfile = jogfile?;
+
+        if let Some(task) = jogfile.tasks.iter().find(|&task| {
+            &task.name == name
+                && (task.params.len() == args.len() || task.rest && task.params.len() < args.len())
+        }) {
+            std::process::exit(
+                task.run(&jogfile.path, args)?
+                    .code()
+                    .context("terminated by a signal")?,
+            )
+        }
+
+        mismatched_args.extend(jogfile.tasks.into_iter().filter(|task| &task.name == name));
     }
 
-    let Some(task) = tasks.iter().find(|&task| {
-        task.params.len() == args.len() || task.rest && task.params.len() < args.len()
-    }) else {
-        bail!(
-            "{}: {}",
-            path.to_string_lossy(),
-            print::mismatched_args_msg(&tasks, name, args)
-        );
-    };
+    if mismatched_args.is_empty() {
+        bail!("unknown task '{name}'");
+    }
 
-    std::process::exit(
-        task.run(&path, args)?
-            .code()
-            .context("terminated by a signal")?,
-    )
+    bail!(print::mismatched_args_msg(&mismatched_args, name, args));
 }
 
 fn main() {

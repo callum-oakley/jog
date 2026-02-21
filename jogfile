@@ -1,10 +1,13 @@
-greet name
-  echo "Hello ${name}"
+greet greeting name
+  echo "${greeting} ${name}"
 
-greet
-  jog greet World
+greet greeting
+  jog greet "${greeting}" World
 
-greet ...
+greet greeting ...
   for name in "$@"; do
-    jog greet "${name}"
+    jog greet "${greeting}" "${name}"
   done
+
+hello ...
+  jog greet Hello "$@"

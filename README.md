@@ -69,6 +69,17 @@ Hello Alice
 Hello Bob
 ```
 
+## Jogfiles
+
+A jogfile consist of a number of tasks. Each task begins with a header line listing the name of the
+task, the parameters for the task, and optionally `...`, all separated by spaces. `...` indicates
+that a task accepts any number of additional unnamed positional arguments. The script to be executed
+when the task is run follows the header, indented by at least one space. Lines beginning with `#`
+are ignored.
+
+jog searches all ancestors of the current directory for jogfiles starting at the current directory
+and runs the first matching task.
+
 ## No string substitution?
 
 Other task runners ([make][], [just][]) pass arguments to tasks by substituting them in to the body

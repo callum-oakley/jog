@@ -3,7 +3,7 @@
 mod jogfile;
 mod print;
 
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, bail};
 
 use crate::jogfile::Jogfile;
 
@@ -46,29 +46,17 @@ fn try_main() -> Result<()> {
                         task.run(&jogfile.path, args)?
                             .code()
                             .context("terminated by a signal")?,
-                    )
+                    );
                 }
             }
         }
     }
 
     if found_task {
-        print::error(&anyhow!(
-            "{} {} given but task '{}' expects",
-            args.len(),
-            if args.len() == 1 {
-                "argument"
-            } else {
-                "arguments"
-            },
-            name,
-        ))
-        .expect("printing error");
         print::list(&current_dir, Some(name))?;
-        std::process::exit(1);
-    } else {
-        bail!("unknown task '{name}'")
+        bail!("argument mismatch");
     }
+    bail!("unknown task '{name}'");
 }
 
 fn main() {

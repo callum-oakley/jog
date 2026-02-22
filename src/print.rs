@@ -83,15 +83,15 @@ pub fn help() -> Result<()> {
 }
 
 pub fn list(current_dir: &Path, name: Option<&str>) -> Result<()> {
-    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
+    let mut stderr = StandardStream::stderr(color_choice(&io::stderr()));
     for (i, jogfile) in Jogfile::read_iter(current_dir)?.enumerate() {
         let jogfile = jogfile?;
         if name.is_none() {
             if i > 0 {
-                writeln!(&mut stdout)?;
+                writeln!(&mut stderr)?;
             }
             write_with_color!(
-                &mut stdout,
+                &mut stderr,
                 ColorSpec::new().set_bold(true),
                 "# {}\n",
                 jogfile.path.display(),
@@ -99,14 +99,14 @@ pub fn list(current_dir: &Path, name: Option<&str>) -> Result<()> {
         }
         for task in jogfile.tasks {
             if name.is_none_or(|name| name == task.name) {
-                write!(&mut stdout, "{}", task.name)?;
+                write!(&mut stderr, "{}", task.name)?;
                 for param in &task.params {
-                    write!(&mut stdout, " {param}")?;
+                    write!(&mut stderr, " {param}")?;
                 }
                 if task.rest {
-                    write!(&mut stdout, " ...")?;
+                    write!(&mut stderr, " ...")?;
                 }
-                writeln!(&mut stdout)?;
+                writeln!(&mut stderr)?;
             }
         }
     }

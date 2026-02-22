@@ -1,9 +1,12 @@
-use std::io::{self, IsTerminal, Write};
+use std::{
+    io::{self, IsTerminal, Write},
+    path::Path,
+};
 
 use anyhow::{Error, Result};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use crate::jogfile::{Jogfile, Task};
+use crate::jogfile::Jogfile;
 
 macro_rules! write_with_color {
     ($dst:expr, $color:expr, $($arg:tt)*) => {
@@ -79,9 +82,9 @@ pub fn help() -> Result<()> {
     Ok(())
 }
 
-pub fn list(jogfiles: impl Iterator<Item = Result<Jogfile>>, name: Option<&str>) -> Result<()> {
+pub fn list(current_dir: &Path, name: Option<&str>) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    for (i, jogfile) in jogfiles.enumerate() {
+    for (i, jogfile) in Jogfile::read_iter(current_dir)?.enumerate() {
         let jogfile = jogfile?;
         if name.is_none() {
             if i > 0 {
@@ -119,41 +122,4 @@ pub fn error(err: &Error) -> Result<()> {
     )?;
     writeln!(&mut stderr, ": {err:#}")?;
     Ok(())
-}
-
-pub fn mismatched_args_msg(tasks: &[Task], name: &str, args: &[String]) -> String {
-    fn param_count(task: &Task) -> String {
-        let mut res = task.params.len().to_string();
-        if task.rest {
-            res.push('+');
-        }
-        res
-    }
-
-    let mut params_msg = param_count(&tasks[0]);
-    if tasks.len() == 2 {
-        params_msg.push_str(" or ");
-        params_msg.push_str(&param_count(&tasks[1]));
-    } else {
-        for i in 1..tasks.len() {
-            params_msg.push_str(", ");
-            if i == tasks.len() - 1 {
-                params_msg.push_str("or ");
-            }
-            params_msg.push_str(&param_count(&tasks[i]));
-        }
-    }
-    params_msg.push_str(" parameter");
-    if tasks.len() > 1 || tasks[0].params.len() != 1 {
-        params_msg.push('s');
-    }
-
-    let mut args_msg = args.len().to_string();
-    if args.len() == 1 {
-        args_msg.push_str(" was given");
-    } else {
-        args_msg.push_str(" were given");
-    }
-
-    format!("task '{name}' takes {params_msg}, but {args_msg}")
 }

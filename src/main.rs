@@ -3,7 +3,7 @@
 mod jogfile;
 mod print;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result, anyhow, bail};
 
 use crate::jogfile::Jogfile;
 
@@ -22,10 +22,7 @@ fn try_main() -> Result<()> {
     }
 
     if args[0] == "--list" || args[0] == "-l" {
-        print::list(
-            Jogfile::read_iter(&current_dir)?,
-            args.get(1).map(String::as_str),
-        )?;
+        print::list(&current_dir, args.get(1).map(String::as_str))?;
         return Ok(());
     }
 
@@ -36,30 +33,42 @@ fn try_main() -> Result<()> {
     let name = &args[0];
     let args = &args[1..];
 
-    let mut mismatched_args = Vec::new();
+    let mut found_task = false;
 
     for jogfile in Jogfile::read_iter(&current_dir)? {
         let jogfile = jogfile?;
 
-        if let Some(task) = jogfile.tasks.iter().find(|&task| {
-            &task.name == name
-                && (task.params.len() == args.len() || task.rest && task.params.len() < args.len())
-        }) {
-            std::process::exit(
-                task.run(&jogfile.path, args)?
-                    .code()
-                    .context("terminated by a signal")?,
-            )
+        for task in jogfile.tasks {
+            if &task.name == name {
+                found_task = true;
+                if task.params.len() == args.len() || task.rest && task.params.len() < args.len() {
+                    std::process::exit(
+                        task.run(&jogfile.path, args)?
+                            .code()
+                            .context("terminated by a signal")?,
+                    )
+                }
+            }
         }
-
-        mismatched_args.extend(jogfile.tasks.into_iter().filter(|task| &task.name == name));
     }
 
-    if mismatched_args.is_empty() {
-        bail!("unknown task '{name}'");
+    if found_task {
+        print::error(&anyhow!(
+            "{} {} given but task '{}' expects",
+            args.len(),
+            if args.len() == 1 {
+                "argument"
+            } else {
+                "arguments"
+            },
+            name,
+        ))
+        .expect("printing error");
+        print::list(&current_dir, Some(name))?;
+        std::process::exit(1);
+    } else {
+        bail!("unknown task '{name}'")
     }
-
-    bail!(print::mismatched_args_msg(&mismatched_args, name, args));
 }
 
 fn main() {
